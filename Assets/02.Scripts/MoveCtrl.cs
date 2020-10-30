@@ -1,10 +1,30 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using Unity.Collections;
+using UnityEditor;
 using UnityEngine;
 
 public class MoveCtrl : MonoBehaviour
 {
+    public void OnLookItemBox (bool isLookAt)
+    {
+        Debug.Log(isLookAt);
+        MoveCtrl.isStopped = isLookAt;
+    }
 
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        MoveCtrl.isStopped = true;
+    }
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        MoveCtrl.isStopped = false;
+    }
+    public void OnPointerHover(PointerEventData eventdata)
+    {
+        Debug.Log("Reticle on");
+    }
     public enum MoveType{
         WAY_POINT,
         LOOK_AT,
@@ -21,6 +41,8 @@ public class MoveCtrl : MonoBehaviour
     private CharacterController cc;
     private Transform camTr;
     private int nextIdx = 1;
+
+    public static bool isStopped = false;
     void Start()
     {
         tr = GetComponent<Transform>();
@@ -36,8 +58,10 @@ public class MoveCtrl : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        switch (moveType) 
-        {
+        if (isStopped) return;
+
+        switch (moveType) {
+
             case MoveType.WAY_POINT:
                 MoveWayPoint();
                 break;
@@ -52,6 +76,25 @@ public class MoveCtrl : MonoBehaviour
 
     void MoveWayPoint()
     {
-        Vector3 direction = poin
+        Vector3 direction = points[nextIdx].position - tr.position;
+        Quaternion rot = Quaternion.LookRotation(direction);
+        tr.rotation = Quaternion.Slerp(tr.rotation, rot, Time.deltaTime * damping);
+        tr.Translate(Vector3.forward * Time.deltaTime * speed);
+    }
+
+void MoveLookAt(int facing) {
+    Vector3 heading = camTr.forward;
+    heading.y = 0.0f;
+
+    Debug.DrawRay(tr.position, heading.normalized * 0.1f, Color.red);
+
+    cc.SimpleMove(heading * speed * facing);
+}
+
+private void OnTriggerEnter(Collider coll)
+{
+    if (coll.CompareTag("WAY_POINT")) {
+        nextIdx = (++nextIdx >= points.Length) ? 1 : nextIdx;
+       }
     }
 }
